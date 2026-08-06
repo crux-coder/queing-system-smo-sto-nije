@@ -8,7 +8,7 @@ test("staff can create, edit, cancel, advance, collect, and reopen a QR code", a
   await expect(page.getByText(/18 \/ 500/)).toBeVisible();
   await page.getByRole("button", { name: "Dodaj narudžbu" }).click();
   await expect(page.getByRole("dialog")).toContainText("Narudžba");
-  await page.getByRole("button", { name: "Gotovo" }).click();
+  await page.locator(".modal-box").getByRole("button", { name: "Zatvori", exact: true }).click();
   await expect(page.getByText("Somun i jogurt")).toBeVisible();
 
   const featuredOrder = page.locator("article");
@@ -39,7 +39,7 @@ test("staff can create, edit, cancel, advance, collect, and reopen a QR code", a
 
   await page.getByRole("button", { name: "Prikaži QR kod za C-023" }).click();
   await expect(page.getByRole("dialog")).toContainText("C-023");
-  await page.getByRole("button", { name: "Gotovo" }).click();
+  await page.locator(".modal-box").getByRole("button", { name: "Zatvori", exact: true }).click();
 
   await page.getByRole("button", { name: "Otvori preuzimanje za C-023" }).click();
   await page.getByRole("button", { name: "Označi kao preuzeto" }).click();
@@ -89,7 +89,7 @@ test("production backend carries one order through staff and customer views", as
   ]);
   expect(createResponse.ok()).toBe(true);
   const created = (await createResponse.json()) as { publicNumber: string; trackingToken: string };
-  await page.getByRole("button", { name: "Gotovo" }).click();
+  await page.locator(".modal-box").getByRole("button", { name: "Zatvori", exact: true }).click();
 
   const customerContext = await browser.newContext();
   const customer = await customerContext.newPage();

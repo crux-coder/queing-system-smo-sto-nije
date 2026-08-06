@@ -41,7 +41,7 @@ export function QrDialog({ order, onClose }: { order: StaffOrder; onClose: () =>
           {source ? <Image src={source} alt={`QR kod za praćenje narudžbe ${order.publicNumber}`} width={256} height={256} unoptimized className="h-full w-full" /> : <div className="skeleton h-full w-full" />}
         </div>
         <p className="text-sm leading-6 text-base-content/60">Kupac može skenirati ovaj kod. Ostat će otvoren dok ga ne zatvorite.</p>
-        <button autoFocus onClick={onClose} className="btn btn-primary btn-lg mt-5 w-full">Gotovo</button>
+        <button autoFocus onClick={onClose} className="btn btn-primary btn-lg mt-5 w-full">Zatvori</button>
       </div>
       <button className="modal-backdrop" onClick={onClose} aria-label="Zatvori">close</button>
     </dialog>
