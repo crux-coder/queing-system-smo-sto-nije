@@ -1,36 +1,67 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Samo Što Nije
 
-## Getting Started
+Mobile-first queue management for a single fast-food location. Staff create free-text orders, show a QR code, and move orders from ordered to ready to collected. Customers open the unguessable tracking link without an account and see a live, sanitized queue with their progress highlighted by daisyUI Aura.
 
-First, run the development server:
+## Local preview
+
+Install dependencies and start Next.js:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Without Supabase environment variables, the app intentionally runs a local demonstration:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- staff dashboard: [http://localhost:3000/dashboard](http://localhost:3000/dashboard)
+- customer tracking: [http://localhost:3000/track/demo](http://localhost:3000/track/demo)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Demo changes live only in the browser and are meant for product review. Production fails closed if Supabase is not configured.
 
-## Learn More
+## Supabase setup
 
-To learn more about Next.js, take a look at the following resources:
+1. Create a Supabase project and disable public email sign-up.
+2. Copy `.env.example` to `.env.local` and add the project URL and publishable key.
+3. Link the CLI and apply the migration:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+supabase link --project-ref YOUR_PROJECT_REF
+supabase db push
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The migration creates the order lifecycle, atomic daily numbering, token-scoped tracking RPC, RLS policies, sanitized public Realtime table, and a five-minute cron job that expires active orders after 24 hours.
 
-## Deploy on Vercel
+Provision each location manually:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. In Supabase Authentication, create an email/password user.
+2. Copy that user's UUID and run this in the SQL editor:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```sql
+insert into public.locations (owner_user_id, display_name)
+values ('AUTH_USER_UUID', 'Naziv lokacije');
+```
+
+One authentication user maps to one location. There is no public registration or location-management UI in the MVP.
+
+## Environment
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your-key
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+Set `NEXT_PUBLIC_APP_URL` to the public Railway URL in production so generated QR links use the correct origin. Deploy the repository as a Node service with `pnpm build` and `pnpm start`; Railway and Supabase provide the MVP's operational logs.
+
+## Verification
+
+```bash
+pnpm test
+pnpm typecheck
+pnpm lint
+pnpm test:e2e
+```
+
+`pnpm test:e2e` builds with webpack before running the mobile and desktop Chromium journeys. Database contract tests live in `supabase/tests/database` and run with `supabase test db` when Docker is available.
+
+The public/private boundary is deliberate: anonymous clients can read only `public_queue` and execute the scoped `track_order` function. Descriptions, tracking tokens, counters, and staff writes remain protected by grants and row-level security.
