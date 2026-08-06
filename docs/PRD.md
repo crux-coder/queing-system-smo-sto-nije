@@ -40,9 +40,9 @@ The application intentionally excludes menu management, payment processing, prin
 22. As a staff member, I want collected, cancelled, and expired orders removed from the operational list, so that only actionable work remains.
 23. As a staff member, I want compact rows to show at most two lines of description, so that many orders remain scannable.
 24. As a staff member, I want the featured next-order card to show the complete description, so that the kitchen can read it without another tap.
-25. As a staff member, I want to tap an ordered item to open its action dialog, so that status changes cannot happen from one accidental touch.
+25. As a staff member, I want a dedicated edit button beside the QR button, so that editing and cancellation are clearly separated from status actions.
 26. As a staff member, I want to edit and explicitly save an ordered item's text, so that I can correct it before preparation finishes.
-27. As a staff member, I want marking an edited order ready to save its latest text first, so that changes are not lost.
+27. As a staff member, I want the visible ready action to update the order immediately without opening a dialog, so that the kitchen workflow takes one tap.
 28. As a staff member, I want to mark an ordered item ready, so that the customer is notified through the live tracking page.
 29. As a staff member, I want to cancel an item only while it is ordered, so that the exceptional action is available without complicating later states.
 30. As a staff member, I want a ready item's dialog to offer only marking it collected, so that its next action is unambiguous.
@@ -108,11 +108,11 @@ The application intentionally excludes menu management, payment processing, prin
 - Mobile creation uses an explicit button. Control/Command plus Enter is a desktop shortcut; plain Enter remains available for line breaks.
 - Creation must be idempotent. The client disables repeated submission while pending, and the server must protect against duplicate retries.
 - Successful creation returns the public order number and tracking URL needed to render the QR dialog. The dialog does not close automatically.
-- Each active row has a dedicated QR affordance that does not conflict with tapping the row for its action dialog.
+- Each ordered item has a dedicated edit affordance beside its QR affordance. Compact ordered rows also have a direct ready action, while ready rows have a dedicated collection affordance.
 - The dashboard has one featured next-order card and one compact active list. The featured item is the oldest order whose status is `ordered`. If no ordered item exists, the featured area communicates that no order is waiting.
 - The remaining active list contains ordered and ready items and is sorted by creation time ascending. Status updates do not reorder it; collected, cancelled, and expired items leave it.
 - The featured card shows the complete description. Compact rows clamp it to two lines. The ordered action dialog shows the complete editable value.
-- The ordered dialog offers explicit save, mark ready, and cancel operations. Marking ready also saves the current edited value atomically. The ready dialog offers only mark collected. No Undo banner or extra confirmation step is required.
+- The ordered dialog offers explicit save and cancel operations. Mark-ready buttons update immediately without opening a dialog. The ready dialog offers only mark collected. No Undo banner or extra confirmation step is required.
 - There is no staff history screen. Terminal orders remain in the database and are accessible only through authorized backend operations or their scoped tracking result.
 - Each tracking URL contains a cryptographically strong, unguessable credential rather than using the short public number as authorization. Token validation is performed server-side.
 - Initial token validation identifies the tracked order and its location. Active pages use the sanitized location queue internally to calculate the estimate and reconcile live changes, but do not render other orders.
@@ -143,7 +143,7 @@ The application intentionally excludes menu management, payment processing, prin
 - Authorization tests prove that authenticated staff can read and mutate only the location mapped to their account.
 - Realtime tests prove that only public-safe fields can reach anonymous subscribers and that staff/customer views reconcile to the canonical state after a change.
 - Resilience tests cover a disconnected Realtime channel, visible degraded state, 10-second polling fallback, successful reconnection, manual refresh, and correct last-synced semantics.
-- Interaction tests cover input trimming, empty and over-limit validation, double-submit prevention, QR reopening, explicit edit saving, mark-ready-with-save, ready-to-collected behavior, and disabled writes while offline.
+- Interaction tests cover input trimming, empty and over-limit validation, double-submit prevention, QR reopening, explicit edit saving, direct mark-ready without a dialog, ready-to-collected behavior, and disabled writes while offline.
 - Accessibility verification covers keyboard operation on desktop, touch-target sizing on mobile, status text independent of color, focus management in dialogs, and readable contrast in the light theme.
 - The repository currently contains no established product test suite or comparable feature tests. The implementation should add the smallest test harness that supports these three principal seams: pure domain behavior, database/RLS contracts, and the end-to-end browser journey.
 

@@ -46,10 +46,7 @@ export function OrderDialog({
               <textarea aria-label="Opis narudžbe" autoFocus className="textarea min-h-32 w-full text-base leading-6" maxLength={500} value={description} onInput={(event) => setDescription(event.currentTarget.value)} disabled={pending} />
               <span className="label justify-end">{description.length} / 500</span>
             </label>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <button className="btn btn-outline btn-lg" disabled={pending || !online || !description.trim()} onClick={() => onUpdate("ordered", description)}>Sačuvaj izmjene</button>
-              <button className="btn btn-primary btn-lg" disabled={pending || !online || !description.trim()} onClick={() => onUpdate("ready", description)}>{pending ? <span className="loading loading-spinner" /> : null}Označi kao spremno</button>
-            </div>
+            <button className="btn btn-primary btn-lg mt-5 w-full" disabled={pending || !online || !description.trim()} onClick={() => onUpdate("ordered", description)}>{pending ? <span className="loading loading-spinner" /> : null}Sačuvaj izmjene</button>
             <button className="btn btn-ghost mt-3 w-full text-error" disabled={pending || !online} onClick={() => onUpdate("cancelled")}>Otkaži narudžbu</button>
           </>
         ) : (

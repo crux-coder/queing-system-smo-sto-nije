@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { BrandHeader } from "@/components/brand-header";
-import { CheckIcon, ClockIcon, PlusIcon, QrIcon, RefreshIcon, WifiOffIcon } from "@/components/icons";
+import { CheckIcon, ClockIcon, EditIcon, PlusIcon, QrIcon, RefreshIcon, WifiOffIcon } from "@/components/icons";
 import { copy } from "@/lib/copy";
 import type { OrderStatus } from "@/lib/domain/orders";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
@@ -117,25 +117,30 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
     } finally { setPending(false); }
   }
 
-  async function updateOrder(nextStatus: OrderStatus, nextDescription?: string) {
-    if (!selectedOrder || pending || !canWrite) return;
+  function applyOrderUpdate(order: StaffOrder, nextStatus: OrderStatus, nextDescription?: string) {
+    setSnapshot((current) => ({ ...current, orders: current.orders.flatMap((currentOrder) => {
+      if (currentOrder.id !== order.id) return [currentOrder];
+      if (["collected", "cancelled", "expired"].includes(nextStatus)) return [];
+      return [{ ...currentOrder, status: nextStatus, description: nextDescription?.trim() || currentOrder.description, readyAt: nextStatus === "ready" ? new Date().toISOString() : currentOrder.readyAt }];
+    }) }));
+  }
+
+  async function updateOrder(order: StaffOrder, nextStatus: OrderStatus, nextDescription?: string) {
+    if (pending || !canWrite) return;
     setPending(true); setError("");
     if (demo) {
-      setSnapshot((current) => ({ ...current, orders: current.orders.flatMap((order) => {
-        if (order.id !== selectedOrder.id) return [order];
-        if (["collected", "cancelled", "expired"].includes(nextStatus)) return [];
-        return [{ ...order, status: nextStatus, description: nextDescription?.trim() || order.description, readyAt: nextStatus === "ready" ? new Date().toISOString() : order.readyAt }];
-      }) }));
+      applyOrderUpdate(order, nextStatus, nextDescription);
       setSelectedOrder(null); setPending(false); setLastSynced(new Date()); return;
     }
     try {
-      const response = await fetch(`/api/staff/orders/${selectedOrder.id}`, {
+      const response = await fetch(`/api/staff/orders/${order.id}`, {
         method: "PATCH", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ expectedStatus: selectedOrder.status, nextStatus, description: nextDescription ?? null }),
+        body: JSON.stringify({ expectedStatus: order.status, nextStatus, description: nextDescription ?? null }),
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
       setBackendReachable(true);
+      applyOrderUpdate(order, nextStatus, nextDescription);
       setSelectedOrder(null);
       void refresh();
     } catch (caught) {
@@ -170,9 +175,12 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
               <div className="card-body gap-5 p-6">
                 <div className="flex items-start justify-between gap-4">
                   <div><p className="text-4xl font-black tracking-tight">{featured.publicNumber}</p><p className="mt-3 whitespace-pre-wrap text-base leading-7 text-base-content/75">{featured.description}</p></div>
-                  <button className="btn btn-square btn-ghost border border-base-300 text-primary" onClick={() => setQrOrder(featured)} aria-label={`Prikaži QR kod za ${featured.publicNumber}`}><QrIcon className="h-6 w-6" /></button>
+                  <div className="flex shrink-0 gap-2">
+                    <button type="button" className="btn btn-square btn-ghost border border-base-300 text-primary" onClick={() => setSelectedOrder(featured)} aria-label={`Uredi narudžbu ${featured.publicNumber}`}><EditIcon className="h-5 w-5" /></button>
+                    <button type="button" className="btn btn-square btn-ghost border border-base-300 text-primary" onClick={() => setQrOrder(featured)} aria-label={`Prikaži QR kod za ${featured.publicNumber}`}><QrIcon className="h-6 w-6" /></button>
+                  </div>
                 </div>
-                <button className="btn btn-primary btn-lg w-full" onClick={() => setSelectedOrder(featured)}><CheckIcon className="h-6 w-6" />Označi kao spremno</button>
+                <button type="button" className="btn btn-primary btn-lg w-full" disabled={pending || !canWrite} onClick={() => void updateOrder(featured, "ready")}>{pending ? <span className="loading loading-spinner" /> : <CheckIcon className="h-6 w-6" />}Označi kao spremno</button>
               </div>
             </article>
           ) : <div className="mt-4 rounded-2xl border border-dashed border-base-300 bg-base-100 p-8 text-center text-base-content/55">Nema narudžbi koje čekaju pripremu.</div>}
@@ -183,11 +191,15 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
           <ul className="list mt-4 overflow-hidden rounded-2xl border border-base-300 bg-base-100 shadow-sm">
             {remaining.length ? remaining.map((order) => (
               <li key={order.id} className="flex items-center gap-2 border-b border-base-300 p-2 last:border-b-0">
-                <button type="button" className="flex min-w-0 flex-1 items-start gap-3 rounded-xl p-2 text-left hover:bg-base-200/60 focus-visible:outline-2 focus-visible:outline-primary" onClick={() => setSelectedOrder(order)}>
+                <div className="flex min-w-0 flex-1 items-start gap-3 p-2">
                   <span className={`mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${order.status === "ready" ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{order.status === "ready" ? <CheckIcon className="h-5 w-5" /> : <ClockIcon className="h-5 w-5" />}</span>
                   <span className="min-w-0"><span className="flex items-center gap-2"><span className="text-lg font-bold">{order.publicNumber}</span><span className={`text-sm font-semibold ${order.status === "ready" ? "text-success" : "text-primary"}`}>{copy.statuses[order.status]}</span></span><span className="line-clamp-2 text-sm leading-5 text-base-content/65">{order.description}</span><time className="mt-1 block text-xs text-base-content/45">{orderTime(order.createdAt)}</time></span>
-                </button>
-                <button type="button" className="btn btn-square btn-ghost mr-2 border border-base-300 text-primary" onClick={() => setQrOrder(order)} aria-label={`Prikaži QR kod za ${order.publicNumber}`}><QrIcon className="h-5 w-5" /></button>
+                </div>
+                <div className="mr-2 grid shrink-0 grid-cols-2 gap-2">
+                  {order.status === "ordered" ? <button type="button" className="btn btn-square btn-ghost border border-base-300 text-primary" onClick={() => setSelectedOrder(order)} aria-label={`Uredi narudžbu ${order.publicNumber}`}><EditIcon className="h-5 w-5" /></button> : <button type="button" className="btn btn-square btn-success btn-soft" onClick={() => setSelectedOrder(order)} aria-label={`Otvori preuzimanje za ${order.publicNumber}`}><CheckIcon className="h-5 w-5" /></button>}
+                  <button type="button" className="btn btn-square btn-ghost border border-base-300 text-primary" onClick={() => setQrOrder(order)} aria-label={`Prikaži QR kod za ${order.publicNumber}`}><QrIcon className="h-5 w-5" /></button>
+                  {order.status === "ordered" ? <button type="button" className="btn btn-primary btn-sm col-span-2" disabled={pending || !canWrite} onClick={() => void updateOrder(order, "ready")} aria-label={`Označi ${order.publicNumber} kao spremno`}><CheckIcon className="h-4 w-4" />Spremno</button> : null}
+                </div>
               </li>
             )) : <li className="p-7 text-center text-sm text-base-content/55">Nema drugih aktivnih narudžbi.</li>}
           </ul>
@@ -196,7 +208,7 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
         <footer className="mt-7 flex items-center justify-center gap-2 text-sm text-base-content/50"><span className={`status ${connected && online && backendReachable ? "status-success" : "status-warning"}`} /><RefreshIcon className="h-4 w-4" /><span>{connected && online && backendReachable ? "Ažurirano" : "Povezivanje"} {lastSynced.toLocaleTimeString("bs-BA", { hour: "2-digit", minute: "2-digit" })}</span></footer>
       </main>
       {qrOrder ? <QrDialog order={qrOrder} onClose={() => setQrOrder(null)} /> : null}
-      {selectedOrder ? <OrderDialog order={selectedOrder} pending={pending} online={canWrite} onClose={() => setSelectedOrder(null)} onUpdate={updateOrder} /> : null}
+      {selectedOrder ? <OrderDialog order={selectedOrder} pending={pending} online={canWrite} onClose={() => setSelectedOrder(null)} onUpdate={(nextStatus, nextDescription) => updateOrder(selectedOrder, nextStatus, nextDescription)} /> : null}
     </div>
   );
 }

@@ -37,6 +37,9 @@ export const RefreshIcon = (props: IconProps) => (
 export const QrIcon = (props: IconProps) => (
   <Icon {...props}><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM15 14h2M20 14v3M14 18h3M20 20h-3" /></Icon>
 );
+export const EditIcon = (props: IconProps) => (
+  <Icon {...props}><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z" /></Icon>
+);
 export const LogOutIcon = (props: IconProps) => (
   <Icon {...props}><path d="M10 17l5-5-5-5M15 12H3M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5" /></Icon>
 );

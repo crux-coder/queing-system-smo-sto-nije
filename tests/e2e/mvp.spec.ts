@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("staff can create, edit, advance, collect, and reopen a QR code", async ({ page }) => {
+test("staff can create, edit, cancel, advance, collect, and reopen a QR code", async ({ page }) => {
   await page.goto("/dashboard");
 
   const input = page.getByPlaceholder("Upišite narudžbu…");
@@ -11,20 +11,37 @@ test("staff can create, edit, advance, collect, and reopen a QR code", async ({ 
   await page.getByRole("button", { name: "Gotovo" }).click();
   await expect(page.getByText("Somun i jogurt")).toBeVisible();
 
-  await page.getByText("Pileći sendvič bez majoneze").click();
+  const featuredOrder = page.locator("article");
+  const featuredOrderNumber = (await featuredOrder.locator("p").first().textContent())?.trim();
+  expect(featuredOrderNumber).toMatch(/^C-\d+$/);
+  await featuredOrder.getByRole("button", { name: "Označi kao spremno" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: `Otvori preuzimanje za ${featuredOrderNumber}` })).toBeVisible();
+
+  await page.getByRole("button", { name: "Uredi narudžbu C-023" }).click();
   await page.getByLabel("Opis narudžbe").fill("Pileći sendvič, bez majoneze");
   await page.getByRole("button", { name: "Sačuvaj izmjene" }).click();
   await expect(page.getByText("Pileći sendvič, bez majoneze")).toBeVisible();
 
-  await page.getByText("Pileći sendvič, bez majoneze").click();
-  await page.getByRole("dialog").getByRole("button", { name: "Označi kao spremno" }).click();
-  await expect(page.getByRole("button", { name: /C-023.*Spremno/ })).toBeVisible();
+  const c23CompactReadyButton = page.getByRole("button", { name: "Označi C-023 kao spremno" });
+  if (await c23CompactReadyButton.count()) {
+    await c23CompactReadyButton.click();
+  } else {
+    await page.locator("article").filter({ hasText: "C-023" }).getByRole("button", { name: "Označi kao spremno" }).click();
+  }
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Otvori preuzimanje za C-023" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Uredi narudžbu C-024" }).click();
+  await expect(page.getByRole("dialog").getByRole("button", { name: "Označi kao spremno" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Otkaži narudžbu" }).click();
+  await expect(page.getByText("C-024", { exact: true })).toHaveCount(0);
 
   await page.getByRole("button", { name: "Prikaži QR kod za C-023" }).click();
   await expect(page.getByRole("dialog")).toContainText("C-023");
   await page.getByRole("button", { name: "Gotovo" }).click();
 
-  await page.getByText("Pileći sendvič, bez majoneze").click();
+  await page.getByRole("button", { name: "Otvori preuzimanje za C-023" }).click();
   await page.getByRole("button", { name: "Označi kao preuzeto" }).click();
   await expect(page.getByText("Pileći sendvič, bez majoneze")).toHaveCount(0);
 });
@@ -79,16 +96,16 @@ test("production backend carries one order through staff and customer views", as
   await customer.goto(`/track/${created.trackingToken}`);
   await expect(customer.getByText(created.publicNumber, { exact: true })).toHaveCount(1);
 
-  const compactRow = page.getByRole("button", { name: new RegExp(`^${created.publicNumber}`) });
-  if (await compactRow.count()) {
-    await compactRow.click();
+  const compactReadyButton = page.getByRole("button", { name: `Označi ${created.publicNumber} kao spremno` });
+  if (await compactReadyButton.count()) {
+    await compactReadyButton.click();
   } else {
     await page.locator("article").filter({ hasText: created.publicNumber }).getByRole("button", { name: "Označi kao spremno" }).click();
   }
-  await page.getByRole("dialog").getByRole("button", { name: "Označi kao spremno" }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(customer.getByRole("heading", { name: "Vaša narudžba je spremna!" })).toBeVisible({ timeout: 15_000 });
 
-  await page.getByRole("button", { name: new RegExp(`^${created.publicNumber}`) }).click();
+  await page.getByRole("button", { name: `Otvori preuzimanje za ${created.publicNumber}` }).click();
   await page.getByRole("button", { name: "Označi kao preuzeto" }).click();
   await expect(customer.getByRole("heading", { name: "Narudžba je preuzeta" })).toBeVisible({ timeout: 15_000 });
   await expect(customer.getByRole("heading", { name: "Spremne narudžbe" })).toHaveCount(0);
