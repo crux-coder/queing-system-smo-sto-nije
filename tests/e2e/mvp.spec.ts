@@ -54,6 +54,11 @@ test("customer sees only their Aura progress and the count ahead", async ({ page
   await expect(page.getByText("Narudžbi ispred vas")).toBeVisible();
   await expect(page.getByText("2", { exact: true })).toBeVisible();
   await expect(page.getByText("C-024")).toHaveCount(1);
+  const progressSteps = page.getByRole("list", { name: "Napredak narudžbe" }).locator(".step");
+  await expect(progressSteps.locator(".step-icon svg")).toHaveCount(3);
+  const preparationConnectorColor = await progressSteps.nth(1).evaluate((step) => getComputedStyle(step, "::before").backgroundColor);
+  const preparationIconColor = await progressSteps.nth(1).locator(".step-icon").evaluate((icon) => getComputedStyle(icon).backgroundColor);
+  expect(preparationConnectorColor).toBe(preparationIconColor);
   for (const otherOrder of ["C-019", "C-021", "C-022", "C-023", "C-025"]) {
     await expect(page.getByText(otherOrder, { exact: true })).toHaveCount(0);
   }

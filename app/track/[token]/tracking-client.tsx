@@ -1,5 +1,9 @@
 "use client";
 
+import ChefHatIcon from "@hugeicons/core-free-icons/ChefHatIcon";
+import Invoice01Icon from "@hugeicons/core-free-icons/Invoice01Icon";
+import ServingFoodIcon from "@hugeicons/core-free-icons/ServingFoodIcon";
+import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BrandHeader } from "@/components/brand-header";
@@ -83,6 +87,7 @@ export function TrackingClient({ token, initialSnapshot, demo }: { token: string
   if (!snapshot.queue) return <div className="min-h-dvh bg-base-200/60"><BrandHeader locationName={snapshot.locationName} /><TerminalState snapshot={snapshot} /></div>;
 
   const isReady = snapshot.status === "ready";
+  const reachedStepClass = isReady ? "step-success" : "step-primary";
   return (
     <div className="min-h-dvh bg-base-200/60" onTouchStart={(event) => { if (window.scrollY === 0) touchStart.current = event.touches[0]?.clientY ?? null; }} onTouchEnd={(event) => { const end = event.changedTouches[0]?.clientY; if (touchStart.current !== null && end && end - touchStart.current > 80) void refresh(); touchStart.current = null; }}>
       <BrandHeader locationName={snapshot.locationName} />
@@ -96,9 +101,9 @@ export function TrackingClient({ token, initialSnapshot, demo }: { token: string
               <div><h1 id="tracking-title" className="text-2xl font-black tracking-tight sm:text-3xl">{isReady ? "Vaša narudžba je spremna!" : "Pripremamo vašu narudžbu"}</h1><p className="mt-2 text-base text-base-content/60">{isReady ? "Možete je preuzeti na pultu." : "Pratite napredak svoje narudžbe ovdje."}</p></div>
               {!isReady ? <div className="stats w-full max-w-xs border border-base-300 bg-base-200/60 shadow-none"><div className="stat place-items-center py-4"><div className="stat-title">Narudžbi ispred vas</div><div className="stat-value text-primary">{ahead}</div><div className="stat-desc">{ahead === 0 ? "Vi ste sljedeći za pripremu." : "Procjena prema trenutnom redu."}</div></div></div> : null}
               <ul className="steps w-full text-xs font-semibold sm:text-sm" aria-label="Napredak narudžbe">
-                <li className="step step-success">Zaprimljena</li>
-                <li className={`step ${isReady ? "step-success" : "step-primary"}`}>U pripremi</li>
-                <li className={`step ${isReady ? "step-success" : ""}`}>Spremna</li>
+                <li className={`step ${reachedStepClass}`}><span className="step-icon"><HugeiconsIcon icon={Invoice01Icon} size={18} strokeWidth={2} aria-hidden="true" /></span>Zaprimljena</li>
+                <li className={`step ${reachedStepClass}`}><span className="step-icon"><HugeiconsIcon icon={ChefHatIcon} size={18} strokeWidth={2} aria-hidden="true" /></span>U pripremi</li>
+                <li className={`step ${isReady ? reachedStepClass : ""}`}><span className="step-icon"><HugeiconsIcon icon={ServingFoodIcon} size={18} strokeWidth={2} aria-hidden="true" /></span>Spremna</li>
               </ul>
             </div>
           </section>
