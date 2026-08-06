@@ -32,7 +32,8 @@ test("staff can create, edit, advance, collect, and reopen a QR code", async ({ 
 test("customer sees only their Aura progress and the count ahead", async ({ page }) => {
   await page.goto("/track/demo");
   await expect(page.getByRole("heading", { name: "Pripremamo vašu narudžbu" })).toBeVisible();
-  await expect(page.locator(".aura.aura-glow")).toBeVisible();
+  await expect(page.locator(".aura.text-primary")).toBeVisible();
+  await expect(page.locator(".aura-glow")).toHaveCount(0);
   await expect(page.getByText("Narudžbi ispred vas")).toBeVisible();
   await expect(page.getByText("2", { exact: true })).toBeVisible();
   await expect(page.getByText("C-024")).toHaveCount(1);

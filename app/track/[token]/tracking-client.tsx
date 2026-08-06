@@ -89,7 +89,7 @@ export function TrackingClient({ token, initialSnapshot, demo }: { token: string
       <main className="safe-bottom mx-auto w-full max-w-2xl px-5 py-7 sm:px-7 sm:py-9">
         {!online || !connected ? <div role="status" className="alert alert-warning mb-6"><WifiOffIcon className="h-5 w-5" /><span>{!online ? "Nema internetske veze. Prikazujemo posljednje podatke." : copy.stale}</span></div> : null}
 
-        <div className={`aura aura-glow aura-lg w-full ${isReady ? "text-success" : "text-violet-400"}`}>
+        <div className={`aura aura-lg w-full ${isReady ? "text-success" : "text-primary"}`}>
           <section className="card w-full bg-base-100 text-base-content shadow-sm" aria-labelledby="tracking-title">
             <div className="card-body items-center gap-5 p-6 text-center sm:p-9">
               <p className={`rounded-2xl px-6 py-3 text-4xl font-black tracking-tight ${isReady ? "bg-success/10 text-success" : "bg-primary/10 text-primary"}`}>{snapshot.publicNumber}</p>
