@@ -54,6 +54,12 @@ test("production backend carries one order through staff and customer views", as
   await page.getByRole("button", { name: "Prijavi se" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
 
+  await page.context().setOffline(true);
+  await expect(page.getByText("Nema veze. Izmjene su privremeno onemogućene.")).toBeVisible();
+  await expect(page.getByPlaceholder("Upišite narudžbu…")).toBeDisabled();
+  await page.context().setOffline(false);
+  await expect(page.getByPlaceholder("Upišite narudžbu…")).toBeEnabled();
+
   await page.getByPlaceholder("Upišite narudžbu…").fill(description);
   const [createResponse] = await Promise.all([
     page.waitForResponse((response) => response.url().endsWith("/api/staff/orders") && response.request().method() === "POST"),

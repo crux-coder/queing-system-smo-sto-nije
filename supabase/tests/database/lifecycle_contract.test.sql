@@ -1,5 +1,5 @@
 begin;
-select plan(13);
+select plan(15);
 
 select is(
   (select schedule from cron.job where jobname = 'expire-stale-orders'),
@@ -48,9 +48,9 @@ select is(
 );
 
 select is(
-  (select last_value::integer from public.order_counters where location_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
-  1,
-  'idempotent retry consumes no additional daily number'
+  (select order_public_number from public.create_order('Prva narudžba', '33333333-3333-4333-8333-333333333333')),
+  (select public_number from public.orders where idempotency_key = '33333333-3333-4333-8333-333333333333'),
+  'idempotent retry returns the originally allocated daily number'
 );
 
 select matches(
@@ -73,12 +73,32 @@ select ok(
   'ready transition retains the edited text and lifecycle timestamp'
 );
 
+do $$
+begin
+  perform set_config(
+    'test.order_id',
+    (select id::text from public.orders where idempotency_key = '33333333-3333-4333-8333-333333333333'),
+    true
+  );
+end;
+$$;
+
 set local "request.jwt.claims" = '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}';
 
 select is(
   (select count(*)::integer from public.orders where location_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
   0,
   'staff cannot read another location orders'
+);
+
+select throws_ok(
+  $$select * from public.update_order(
+    current_setting('test.order_id')::uuid,
+    'ready', 'collected', null
+  )$$,
+  'P0001',
+  'Order changed on another device or is unavailable',
+  'staff cannot mutate another location order'
 );
 
 set local "request.jwt.claims" = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
@@ -101,6 +121,12 @@ select ok(
 select lives_ok(
   $$select * from public.create_order('Zaboravljena narudžba', '44444444-4444-4444-8444-444444444444')$$,
   'a second active order can be created'
+);
+
+select matches(
+  (select public_number from public.orders where idempotency_key = '44444444-4444-4444-8444-444444444444'),
+  '^[A-G]-002$',
+  'the next distinct order receives the next daily sequence'
 );
 
 reset role;

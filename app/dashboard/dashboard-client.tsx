@@ -26,20 +26,26 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
   const [pending, setPending] = useState(false);
   const [online, setOnline] = useState(() => demo || typeof navigator === "undefined" || navigator.onLine);
   const [connected, setConnected] = useState(demo);
+  const [backendReachable, setBackendReachable] = useState(true);
   const [error, setError] = useState("");
   const [lastSynced, setLastSynced] = useState(new Date());
   const idempotencyKey = useRef<string | null>(null);
   const touchStart = useRef<number | null>(null);
-  const canWrite = demo || (online && connected);
+  const canWrite = demo || (online && backendReachable);
 
   const refresh = useCallback(async () => {
     if (demo) { setLastSynced(new Date()); return; }
     try {
       const response = await fetch("/api/staff/queue", { cache: "no-store" });
-      if (!response.ok) return;
+      if (!response.ok) {
+        setBackendReachable(false);
+        return;
+      }
       setSnapshot((await response.json()) as StaffSnapshot);
       setLastSynced(new Date());
+      setBackendReachable(true);
     } catch {
+      setBackendReachable(false);
       setConnected(false);
     }
   }, [demo]);
@@ -101,6 +107,7 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
+      setBackendReachable(true);
       idempotencyKey.current = null;
       setDescription("");
       setQrOrder({ id: payload.id, publicNumber: payload.publicNumber, description: normalized, status: payload.status, trackingToken: payload.trackingToken, createdAt: payload.createdAt, readyAt: null });
@@ -128,6 +135,7 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
       });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload.error);
+      setBackendReachable(true);
       setSelectedOrder(null);
       void refresh();
     } catch (caught) {
