@@ -16,13 +16,17 @@ test("staff can create, edit, advance, collect, and reopen a QR code", async ({ 
   await page.getByRole("button", { name: "Sačuvaj izmjene" }).click();
   await expect(page.getByText("Pileći sendvič, bez majoneze")).toBeVisible();
 
+  await page.getByText("Pileći sendvič, bez majoneze").click();
+  await page.getByRole("dialog").getByRole("button", { name: "Označi kao spremno" }).click();
+  await expect(page.getByRole("button", { name: /C-023.*Spremno/ })).toBeVisible();
+
   await page.getByRole("button", { name: "Prikaži QR kod za C-023" }).click();
   await expect(page.getByRole("dialog")).toContainText("C-023");
   await page.getByRole("button", { name: "Gotovo" }).click();
 
-  await page.getByText("Mali ćevapi i sok").click();
+  await page.getByText("Pileći sendvič, bez majoneze").click();
   await page.getByRole("button", { name: "Označi kao preuzeto" }).click();
-  await expect(page.getByText("Mali ćevapi i sok")).toHaveCount(0);
+  await expect(page.getByText("Pileći sendvič, bez majoneze")).toHaveCount(0);
 });
 
 test("customer sees Aura progress, private-safe queue rows, and can refresh", async ({ page }) => {
@@ -33,4 +37,49 @@ test("customer sees Aura progress, private-safe queue rows, and can refresh", as
   await expect(page.getByText("C-024")).toHaveCount(2);
   await page.getByRole("button", { name: "Osvježi" }).click();
   await expect(page.getByText(/^Ažurirano /)).toBeVisible();
+});
+
+test("production backend carries one order through staff and customer views", async ({ browser, page }) => {
+  test.skip(
+    !process.env.E2E_STAFF_EMAIL ||
+      !process.env.E2E_STAFF_PASSWORD ||
+      !process.env.NEXT_PUBLIC_SUPABASE_URL,
+    "Requires a provisioned Supabase location and E2E staff credentials.",
+  );
+
+  const description = `E2E narudžba ${crypto.randomUUID()}`;
+  await page.goto("/login");
+  await page.getByLabel("E-mail").fill(process.env.E2E_STAFF_EMAIL!);
+  await page.getByLabel("Lozinka").fill(process.env.E2E_STAFF_PASSWORD!);
+  await page.getByRole("button", { name: "Prijavi se" }).click();
+  await expect(page).toHaveURL(/\/dashboard$/);
+
+  await page.getByPlaceholder("Upišite narudžbu…").fill(description);
+  const [createResponse] = await Promise.all([
+    page.waitForResponse((response) => response.url().endsWith("/api/staff/orders") && response.request().method() === "POST"),
+    page.getByRole("button", { name: "Dodaj narudžbu" }).click(),
+  ]);
+  expect(createResponse.ok()).toBe(true);
+  const created = (await createResponse.json()) as { publicNumber: string; trackingToken: string };
+  await page.getByRole("button", { name: "Gotovo" }).click();
+
+  const customerContext = await browser.newContext();
+  const customer = await customerContext.newPage();
+  await customer.goto(`/track/${created.trackingToken}`);
+  await expect(customer.getByText(created.publicNumber, { exact: true })).toHaveCount(2);
+
+  const compactRow = page.getByRole("button", { name: new RegExp(`^${created.publicNumber}`) });
+  if (await compactRow.count()) {
+    await compactRow.click();
+  } else {
+    await page.locator("article").filter({ hasText: created.publicNumber }).getByRole("button", { name: "Označi kao spremno" }).click();
+  }
+  await page.getByRole("dialog").getByRole("button", { name: "Označi kao spremno" }).click();
+  await expect(customer.getByRole("heading", { name: "Vaša narudžba je spremna!" })).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole("button", { name: new RegExp(`^${created.publicNumber}`) }).click();
+  await page.getByRole("button", { name: "Označi kao preuzeto" }).click();
+  await expect(customer.getByRole("heading", { name: "Narudžba je preuzeta" })).toBeVisible({ timeout: 15_000 });
+  await expect(customer.getByRole("heading", { name: "Spremne narudžbe" })).toHaveCount(0);
+  await customerContext.close();
 });

@@ -42,6 +42,12 @@ export async function PATCH(request: Request, context: RouteContext<"/api/staff/
     p_description: description,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+  if (error) {
+    console.error("update_order failed", error);
+    return NextResponse.json(
+      { error: "Narudžba je promijenjena ili nije dostupna. Osvježite red i pokušajte ponovo." },
+      { status: 409 },
+    );
+  }
   return NextResponse.json(data?.[0]);
 }

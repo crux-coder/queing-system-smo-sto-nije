@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { XIcon } from "@/components/icons";
 import type { OrderStatus } from "@/lib/domain/orders";
@@ -20,9 +20,20 @@ export function OrderDialog({
   onUpdate: (nextStatus: OrderStatus, description?: string) => Promise<void>;
 }) {
   const [description, setDescription] = useState(order.description);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialog?.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+      previouslyFocused?.focus();
+    };
+  }, []);
 
   return (
-    <dialog open className="modal modal-open" aria-labelledby="order-title">
+    <dialog ref={dialogRef} className="modal" aria-labelledby="order-title" onCancel={(event) => { event.preventDefault(); onClose(); }}>
       <div className="modal-box max-w-lg p-6">
         <button onClick={onClose} className="btn btn-circle btn-ghost btn-sm absolute right-3 top-3" aria-label="Zatvori"><XIcon className="h-5 w-5" /></button>
         <p className={`status ${order.status === "ready" ? "status-success" : "status-primary"}`} aria-hidden="true" />

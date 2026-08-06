@@ -64,4 +64,6 @@ pnpm test:e2e
 
 `pnpm test:e2e` builds with webpack before running the mobile and desktop Chromium journeys. Database contract tests live in `supabase/tests/database` and run with `supabase test db` when Docker is available.
 
+Set `E2E_STAFF_EMAIL` and `E2E_STAFF_PASSWORD` alongside the Supabase variables to enable the production-backed staff → customer → ready → collected browser journey. Without those credentials, Playwright runs the deterministic local-demo journeys and reports the production journey as skipped.
+
 The public/private boundary is deliberate: anonymous clients can read only `public_queue` and execute the scoped `track_order` function. Descriptions, tracking tokens, counters, and staff writes remain protected by grants and row-level security.

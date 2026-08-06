@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 import { XIcon } from "@/components/icons";
@@ -8,7 +8,18 @@ import type { StaffOrder } from "@/lib/types";
 
 export function QrDialog({ order, onClose }: { order: StaffOrder; onClose: () => void }) {
   const [source, setSource] = useState("");
+  const dialogRef = useRef<HTMLDialogElement>(null);
   const trackingUrl = typeof window === "undefined" ? "" : `${window.location.origin}/track/${order.trackingToken}`;
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    dialog?.showModal();
+    return () => {
+      if (dialog?.open) dialog.close();
+      previouslyFocused?.focus();
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -21,7 +32,7 @@ export function QrDialog({ order, onClose }: { order: StaffOrder; onClose: () =>
   }, [trackingUrl]);
 
   return (
-    <dialog open className="modal modal-open" aria-labelledby="qr-title">
+    <dialog ref={dialogRef} className="modal" aria-labelledby="qr-title" onCancel={(event) => { event.preventDefault(); onClose(); }}>
       <div className="modal-box max-w-sm p-6 text-center">
         <button onClick={onClose} className="btn btn-circle btn-ghost btn-sm absolute right-3 top-3" aria-label="Zatvori QR kod"><XIcon className="h-5 w-5" /></button>
         <p className="text-sm font-semibold text-base-content/55">Narudžba</p>

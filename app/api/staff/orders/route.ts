@@ -34,7 +34,13 @@ export async function POST(request: Request) {
     p_idempotency_key: result.data.idempotencyKey,
   });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 409 });
+  if (error) {
+    console.error("create_order failed", error);
+    return NextResponse.json(
+      { error: "Narudžbu nije moguće dodati. Osvježite red i pokušajte ponovo." },
+      { status: 409 },
+    );
+  }
   const created = data?.[0];
   return NextResponse.json({
     id: created.order_id,
