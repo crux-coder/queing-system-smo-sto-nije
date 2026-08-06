@@ -1,5 +1,5 @@
 begin;
-select plan(15);
+select plan(16);
 
 select is(
   (select schedule from cron.job where jobname = 'expire-stale-orders'),
@@ -57,6 +57,16 @@ select matches(
   (select public_number from public.orders where idempotency_key = '33333333-3333-4333-8333-333333333333'),
   '^[A-G]-001$',
   'the first daily number has the UTC weekday prefix and minimum padding'
+);
+
+select is(
+  (
+    public.track_order(
+      (select tracking_token from public.orders where idempotency_key = '33333333-3333-4333-8333-333333333333')
+    )->>'locationName'
+  ),
+  'Lokacija jedan',
+  'active tracking resolves the order row and its location name'
 );
 
 select lives_ok(

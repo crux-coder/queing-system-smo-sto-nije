@@ -29,12 +29,16 @@ test("staff can create, edit, advance, collect, and reopen a QR code", async ({ 
   await expect(page.getByText("Pileći sendvič, bez majoneze")).toHaveCount(0);
 });
 
-test("customer sees Aura progress, private-safe queue rows, and can refresh", async ({ page }) => {
+test("customer sees only their Aura progress and the count ahead", async ({ page }) => {
   await page.goto("/track/demo");
   await expect(page.getByRole("heading", { name: "Pripremamo vašu narudžbu" })).toBeVisible();
   await expect(page.locator(".aura.aura-glow")).toBeVisible();
-  await expect(page.getByText("Još otprilike 2 narudžbe prije vaše")).toBeVisible();
-  await expect(page.getByText("C-024")).toHaveCount(2);
+  await expect(page.getByText("Narudžbi ispred vas")).toBeVisible();
+  await expect(page.getByText("2", { exact: true })).toBeVisible();
+  await expect(page.getByText("C-024")).toHaveCount(1);
+  for (const otherOrder of ["C-019", "C-021", "C-022", "C-023", "C-025"]) {
+    await expect(page.getByText(otherOrder, { exact: true })).toHaveCount(0);
+  }
   await page.getByRole("button", { name: "Osvježi" }).click();
   await expect(page.getByText(/^Ažurirano /)).toBeVisible();
 });
@@ -72,7 +76,7 @@ test("production backend carries one order through staff and customer views", as
   const customerContext = await browser.newContext();
   const customer = await customerContext.newPage();
   await customer.goto(`/track/${created.trackingToken}`);
-  await expect(customer.getByText(created.publicNumber, { exact: true })).toHaveCount(2);
+  await expect(customer.getByText(created.publicNumber, { exact: true })).toHaveCount(1);
 
   const compactRow = page.getByRole("button", { name: new RegExp(`^${created.publicNumber}`) });
   if (await compactRow.count()) {

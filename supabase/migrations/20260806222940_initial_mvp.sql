@@ -317,15 +317,19 @@ declare
   v_location_name text;
   v_queue jsonb;
 begin
-  select orders, locations.display_name
-  into v_order, v_location_name
-  from public.orders
-  join public.locations on locations.id = orders.location_id
+  select orders.*
+  into v_order
+  from public.orders as orders
   where orders.tracking_token = p_tracking_token;
 
   if not found then
     return null;
   end if;
+
+  select locations.display_name
+  into v_location_name
+  from public.locations as locations
+  where locations.id = v_order.location_id;
 
   if v_order.status in ('ordered', 'ready') then
     select coalesce(jsonb_agg(to_jsonb(q) order by

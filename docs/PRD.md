@@ -4,13 +4,13 @@
 
 Fast-food locations need a low-friction way to record incoming orders and tell customers when their food is ready without making staff operate a full point-of-sale system. Existing queue systems often require structured menus, payments, printers, customer accounts, or complicated staff workflows. Those features create unnecessary setup and interaction for an initial pilot.
 
-Staff need to create an order from a short free-text description, move it through a minimal lifecycle, and show the customer a QR code. Customers need to scan that QR code without creating an account, identify their order inside the live location queue, understand roughly how many orders are ahead of them, and trust that the information is current.
+Staff need to create an order from a short free-text description, move it through a minimal lifecycle, and show the customer a QR code. Customers need to scan that QR code without creating an account, see only their own order, understand roughly how many orders are ahead of them, and trust that the information is current.
 
 ## Solution
 
 Samo Što Nije is a mobile-first Bosnian-language web application for one fast-food location per business account. A manually provisioned staff account opens a single operational dashboard where staff can create an order, show or reopen its QR code, edit it while ordered, mark it ready, and mark it collected. The oldest ordered item is always presented prominently as the next order.
 
-Every order receives a short daily public number and an unguessable tracking URL encoded as a QR code. The customer page displays the location, the customer's own order, an estimate of how many ordered items are ahead, and sanitized live lists of ordered and ready order numbers. Supabase Realtime keeps staff and customer views synchronized, with polling and pull-to-refresh as recovery mechanisms.
+Every order receives a short daily public number and an unguessable tracking URL encoded as a QR code. The customer page displays the location, the customer's own order, its progress, and an estimate of how many ordered items are ahead. It does not display other orders. Supabase Realtime keeps staff and customer views synchronized, with polling and pull-to-refresh as recovery mechanisms.
 
 The application intentionally excludes menu management, payment processing, printer integration, customer identity, and chain administration. Its purpose is to validate the smallest useful queue-management workflow.
 
@@ -57,12 +57,12 @@ The application intentionally excludes menu management, payment processing, prin
 39. As a customer, I want the tracking URL to be difficult to guess, so that my specific order is not trivially discoverable from its short number.
 40. As a customer, I want to see the location display name, so that I can confirm I scanned the correct queue.
 41. As a customer, I want my order number and status shown prominently, so that I can understand my current state at a glance.
-42. As a customer, I want my order highlighted inside the public queue as well as in its own card, so that I can see its physical position.
+42. As a customer, I want the tracking page to show only my order, so that other customers' order numbers do not distract from my progress.
 43. As a customer, I want an estimate of how many ordered items are ahead of mine, so that I have a useful expectation without being promised strict processing order.
 44. As a customer, I want the estimate to ignore ready, collected, cancelled, and expired items, so that it reflects outstanding preparation work.
-45. As a customer, I want the ordered list sorted oldest-created first, so that the queue is understandable.
-46. As a customer, I want the ready list sorted oldest-ready first, so that orders waiting longest for collection appear first.
-47. As a customer, I want only anonymous order numbers and statuses shown for other customers, so that descriptions are never exposed.
+45. As a customer, I want the number ahead shown prominently, so that I can understand my approximate position without seeing the queue.
+46. As a customer, I want the page to explain when no orders are ahead, so that I know I am next for preparation.
+47. As a customer, I do not want other customers' order numbers or statuses displayed, so that the page remains focused on my order.
 48. As a customer, I want my open page to update through Realtime, so that I do not need to refresh continuously.
 49. As a customer, I want a strong visual ready state and vibration where supported, so that I notice when my order becomes ready.
 50. As a customer, I want to see when my device last synchronized successfully, so that I can judge whether the queue is fresh.
@@ -115,16 +115,16 @@ The application intentionally excludes menu management, payment processing, prin
 - The ordered dialog offers explicit save, mark ready, and cancel operations. Marking ready also saves the current edited value atomically. The ready dialog offers only mark collected. No Undo banner or extra confirmation step is required.
 - There is no staff history screen. Terminal orders remain in the database and are accessible only through authorized backend operations or their scoped tracking result.
 - Each tracking URL contains a cryptographically strong, unguessable credential rather than using the short public number as authorization. Token validation is performed server-side.
-- Initial token validation identifies the tracked order and its location. Active pages then receive the sanitized location queue and highlight the tracked order by a public-safe identifier.
+- Initial token validation identifies the tracked order and its location. Active pages use the sanitized location queue internally to calculate the estimate and reconcile live changes, but do not render other orders.
 - Public queue data is structurally isolated from private order data. The anonymous Realtime representation may contain only the public-safe order identifier, public order number, location's public identifier, status, creation time, and ready time. It must never contain descriptions, tracking credentials, authentication identifiers, or privileged metadata.
 - Anonymous access is read-only. Row Level Security and database grants deny all anonymous inserts, updates, and deletes. Authenticated staff policies include location ownership checks rather than relying on the authenticated role alone.
 - Public queue activity is intentionally treated as observable in the MVP. The accepted risk is that a third party may infer location volume, rush periods, and approximate preparation speed.
 - Both staff and active customer pages use Supabase Realtime. Realtime events trigger a canonical refetch or otherwise reconcile against a server-authoritative snapshot rather than blindly trusting partial local state.
 - When Realtime disconnects, clients enter a visible degraded state, poll every 10 seconds, allow manual pull-to-refresh, and attempt to restore the subscription.
 - `Last synced` means the latest successful device synchronization. It updates after the initial snapshot, a successfully reconciled Realtime event, a successful fallback poll, or a successful manual refresh.
-- The customer page has a large personal-order card, a ready section, an ordered section, and connection/freshness information. The tracked order remains present and highlighted in the appropriate public list.
+- The customer page has one large personal-order card with Aura progress, a prominent count of ordered items ahead, and connection/freshness information. It does not render ready or ordered lists.
 - The queue-ahead estimate counts currently `ordered` items at the same location whose creation ordering precedes the tracked order. The UI presents this as an estimate because preparation may complete out of sequence.
-- Ready orders sort by `ready_at` ascending. Ordered orders sort by creation ordering ascending. Deterministic tie-breaking must be used when timestamps are equal.
+- The internal queue-ahead calculation uses creation ordering with deterministic UUID tie-breaking when timestamps are equal.
 - A terminal tracking link remains valid indefinitely. Collected, cancelled, and expired pages show the corresponding final state but do not show the location's current active queue.
 - Customer readiness feedback is visual and attempts a short vibration where the browser supports it. The MVP does not use sound, browser push, SMS, email, or other notifications.
 - Staff writes are online-only. When connectivity is unavailable or not confirmed, creation and state-changing actions are disabled and the reason is visible.
@@ -136,7 +136,7 @@ The application intentionally excludes menu management, payment processing, prin
 ## Testing Decisions
 
 - Tests assert externally visible behavior and security contracts rather than component internals, hook implementation, CSS class structure, or database implementation details.
-- The highest-value seam is one browser-level journey covering staff login, order creation, QR/tracking navigation, customer queue visibility, marking ready, Realtime customer change, and marking collected. This proves the main product outcome across the real boundaries.
+- The highest-value seam is one browser-level journey covering staff login, order creation, QR/tracking navigation, the customer's private progress and count-ahead view, marking ready, Realtime customer change, and marking collected. This proves the main product outcome across the real boundaries.
 - Pure domain tests cover UTC weekday prefixes, daily counter behavior, minimum number padding and values beyond 999, no number reuse, queue ordering, queue-ahead estimates, 24-hour expiry, and permitted/forbidden status transitions.
 - Database contract tests prove atomic number allocation under concurrency and verify lifecycle timestamps and terminal-state behavior.
 - Authorization tests prove that an unauthenticated user can read only the sanitized queue representation, cannot read descriptions or tracking credentials, and cannot perform any write.

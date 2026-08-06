@@ -1,6 +1,6 @@
 # Samo Što Nije
 
-Mobile-first queue management for a single fast-food location. Staff create free-text orders, show a QR code, and move orders from ordered to ready to collected. Customers open the unguessable tracking link without an account and see a live, sanitized queue with their progress highlighted by daisyUI Aura.
+Mobile-first queue management for a single fast-food location. Staff create free-text orders, show a QR code, and move orders from ordered to ready to collected. Customers open the unguessable tracking link without an account and see only their order, its live progress, and the estimated number of orders ahead, highlighted by daisyUI Aura.
 
 ## Local preview
 
