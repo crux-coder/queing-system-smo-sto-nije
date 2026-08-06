@@ -153,7 +153,7 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
     <div className="min-h-dvh bg-base-200/60" onTouchStart={(event) => { if (window.scrollY === 0) touchStart.current = event.touches[0]?.clientY ?? null; }} onTouchEnd={(event) => { const end = event.changedTouches[0]?.clientY; if (touchStart.current !== null && end && end - touchStart.current > 80) void refresh(); touchStart.current = null; }}>
       <BrandHeader locationName={snapshot.locationName} onLogout={() => void logout()} />
       <main className="safe-bottom mx-auto w-full max-w-3xl px-5 py-7 sm:px-7 sm:py-9">
-        {!online || !connected ? <div role="alert" className="alert alert-warning mb-5"><WifiOffIcon className="h-5 w-5" /><span>{!online ? copy.offline : copy.stale}</span><button type="button" className="btn btn-sm" disabled={!online} onClick={() => void refresh()}><RefreshIcon className="h-4 w-4" />Osvježi</button></div> : null}
+        {!online || !connected || !backendReachable ? <div role="alert" className="alert alert-warning mb-5"><WifiOffIcon className="h-5 w-5" /><span>{!online ? copy.offline : !backendReachable ? copy.backendUnavailable : copy.stale}</span><button type="button" className="btn btn-sm" disabled={!online} onClick={() => void refresh()}><RefreshIcon className="h-4 w-4" />Osvježi</button></div> : null}
         {error ? <div role="alert" className="alert alert-error mb-5"><span>{error}</span></div> : null}
 
         <section aria-labelledby="new-order-title" className="rounded-2xl bg-base-100 p-5 shadow-sm sm:p-6">
@@ -193,7 +193,7 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
           </ul>
         </section>
 
-        <footer className="mt-7 flex items-center justify-center gap-2 text-sm text-base-content/50"><span className={`status ${connected && online ? "status-success" : "status-warning"}`} /><RefreshIcon className="h-4 w-4" /><span>{connected && online ? "Ažurirano" : "Povezivanje"} {lastSynced.toLocaleTimeString("bs-BA", { hour: "2-digit", minute: "2-digit" })}</span></footer>
+        <footer className="mt-7 flex items-center justify-center gap-2 text-sm text-base-content/50"><span className={`status ${connected && online && backendReachable ? "status-success" : "status-warning"}`} /><RefreshIcon className="h-4 w-4" /><span>{connected && online && backendReachable ? "Ažurirano" : "Povezivanje"} {lastSynced.toLocaleTimeString("bs-BA", { hour: "2-digit", minute: "2-digit" })}</span></footer>
       </main>
       {qrOrder ? <QrDialog order={qrOrder} onClose={() => setQrOrder(null)} /> : null}
       {selectedOrder ? <OrderDialog order={selectedOrder} pending={pending} online={canWrite} onClose={() => setSelectedOrder(null)} onUpdate={updateOrder} /> : null}
