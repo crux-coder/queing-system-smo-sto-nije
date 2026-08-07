@@ -12,6 +12,12 @@ import { copy } from "@/lib/copy";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { TrackingSnapshot } from "@/lib/types";
 
+type PublicQueueDeletePayload = {
+  old: {
+    order_id?: string;
+  };
+};
+
 function TerminalState({ snapshot }: { snapshot: TrackingSnapshot }) {
   const terminalCopy = {
     collected: ["Narudžba je preuzeta", "Hvala vam i prijatno!"],
@@ -70,9 +76,12 @@ export function TrackingClient({ token, initialSnapshot, demo }: { token: string
     const channel = supabase
       .channel(`queue:${snapshot.locationId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "public_queue", filter: `location_id=eq.${snapshot.locationId}` }, () => void refresh())
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "public_queue" }, (payload: PublicQueueDeletePayload) => {
+        if (payload.old.order_id === snapshot.trackedOrderId) void refresh();
+      })
       .subscribe((status: string) => setConnected(status === "SUBSCRIBED"));
     return () => { void supabase.removeChannel(channel); };
-  }, [demo, isActive, refresh, snapshot.locationId]);
+  }, [demo, isActive, refresh, snapshot.locationId, snapshot.trackedOrderId]);
 
   useEffect(() => {
     if (demo || !online || !isActive) return;
