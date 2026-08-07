@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getLocationImageUrl } from "@/lib/supabase/location-images";
 import type { StaffSnapshot } from "@/lib/types";
 
 export async function getStaffSnapshot(): Promise<StaffSnapshot | null> {
@@ -11,7 +12,7 @@ export async function getStaffSnapshot(): Promise<StaffSnapshot | null> {
 
   const { data: location, error: locationError } = await supabase
     .from("locations")
-    .select("id, display_name")
+    .select("id, display_name, image_path")
     .eq("owner_user_id", authData.user.id)
     .single();
 
@@ -32,6 +33,7 @@ export async function getStaffSnapshot(): Promise<StaffSnapshot | null> {
   return {
     locationId: location.id,
     locationName: location.display_name,
+    locationImageUrl: getLocationImageUrl(supabase, location.image_path),
     orders: (orders ?? []).map((order) => ({
       id: order.id,
       publicNumber: order.public_number,

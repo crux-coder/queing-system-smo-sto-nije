@@ -29,7 +29,7 @@ supabase link --project-ref YOUR_PROJECT_REF
 supabase db push
 ```
 
-The migration creates the order lifecycle, atomic daily numbering, token-scoped tracking RPC, RLS policies, sanitized public Realtime table, and a five-minute cron job that expires active orders after 24 hours.
+The migrations create the order lifecycle, atomic daily numbering, token-scoped tracking RPC, RLS policies, sanitized public Realtime table, owner-scoped public location-image storage, and a five-minute cron job that expires active orders after 24 hours.
 
 Provision each location manually:
 
@@ -41,7 +41,7 @@ insert into public.locations (owner_user_id, display_name)
 values ('AUTH_USER_UUID', 'Naziv lokacije');
 ```
 
-One authentication user maps to one location. There is no public registration or location-management UI in the MVP.
+One authentication user maps to one location. There is no public registration or separate location-management screen; staff change the public location image directly from the dashboard avatar.
 
 ## Environment
 

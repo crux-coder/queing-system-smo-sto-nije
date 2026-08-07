@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 import { demoTrackingSnapshot } from "@/lib/demo";
 import { getSupabaseConfig, isSupabaseConfigured } from "@/lib/supabase/config";
+import { getLocationImageUrl } from "@/lib/supabase/location-images";
 import type { PublicQueueOrder, TrackingSnapshot } from "@/lib/types";
 
 type QueueRow = {
@@ -25,7 +26,10 @@ export async function getTrackingSnapshot(token: string): Promise<TrackingSnapsh
   const { data, error } = await supabase.rpc("track_order", { p_tracking_token: token });
   if (error || !data) return null;
 
-  const raw = data as Omit<TrackingSnapshot, "queue"> & { queue: QueueRow[] | null };
+  const raw = data as Omit<TrackingSnapshot, "locationImageUrl" | "queue"> & {
+    locationImagePath: string | null;
+    queue: QueueRow[] | null;
+  };
   const queue: PublicQueueOrder[] | null = raw.queue?.map((row) => ({
     orderId: row.order_id,
     locationId: row.location_id,
@@ -35,5 +39,10 @@ export async function getTrackingSnapshot(token: string): Promise<TrackingSnapsh
     readyAt: row.ready_at,
   })) ?? null;
 
-  return { ...raw, queue };
+  const { locationImagePath, ...snapshot } = raw;
+  return {
+    ...snapshot,
+    locationImageUrl: getLocationImageUrl(supabase, locationImagePath),
+    queue,
+  };
 }

@@ -13,6 +13,7 @@ export type StaffOrder = {
 export type StaffSnapshot = {
   locationId: string;
   locationName: string;
+  locationImageUrl: string | null;
   orders: StaffOrder[];
 };
 
@@ -28,6 +29,7 @@ export type PublicQueueOrder = {
 export type TrackingSnapshot = {
   locationId: string;
   locationName: string;
+  locationImageUrl: string | null;
   trackedOrderId: string;
   publicNumber: string;
   status: OrderStatus;

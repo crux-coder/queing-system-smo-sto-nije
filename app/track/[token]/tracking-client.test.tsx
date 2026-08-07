@@ -42,6 +42,7 @@ vi.mock("@/lib/supabase/client", () => ({
 const readySnapshot: TrackingSnapshot = {
   locationId: "location-1",
   locationName: "Test restoran",
+  locationImageUrl: null,
   trackedOrderId: "order-1",
   publicNumber: "C-001",
   status: "ready",

@@ -1,5 +1,5 @@
 begin;
-select plan(16);
+select plan(20);
 
 select is(
   (select schedule from cron.job where jobname = 'expire-stale-orders'),
@@ -30,6 +30,17 @@ insert into public.locations (id, owner_user_id, display_name) values
 
 set local role authenticated;
 set local "request.jwt.claims" = '{"sub":"11111111-1111-4111-8111-111111111111","role":"authenticated"}';
+
+select lives_ok(
+  $$select public.set_location_image('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/33333333-3333-4333-8333-333333333333.jpg')$$,
+  'a location owner can save an image from their storage folder'
+);
+
+select is(
+  (select image_path from public.locations where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/33333333-3333-4333-8333-333333333333.jpg',
+  'the location stores its current image path'
+);
 
 select lives_ok(
   $$select * from public.create_order('  Prva narudžba  ', '33333333-3333-4333-8333-333333333333')$$,
@@ -69,6 +80,16 @@ select is(
   'active tracking resolves the order row and its location name'
 );
 
+select is(
+  (
+    public.track_order(
+      (select tracking_token from public.orders where idempotency_key = '33333333-3333-4333-8333-333333333333')
+    )->>'locationImagePath'
+  ),
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/33333333-3333-4333-8333-333333333333.jpg',
+  'customer tracking exposes the public location image path'
+);
+
 select lives_ok(
   $$select * from public.update_order(
     (select id from public.orders where idempotency_key = '33333333-3333-4333-8333-333333333333'),
@@ -94,6 +115,13 @@ end;
 $$;
 
 set local "request.jwt.claims" = '{"sub":"22222222-2222-4222-8222-222222222222","role":"authenticated"}';
+
+select throws_ok(
+  $$select public.set_location_image('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/44444444-4444-4444-8444-444444444444.jpg')$$,
+  'P0001',
+  'Invalid location image path',
+  'staff cannot assign an image from another location folder'
+);
 
 select is(
   (select count(*)::integer from public.orders where location_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'),

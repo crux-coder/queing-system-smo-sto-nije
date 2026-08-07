@@ -3,11 +3,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import { BrandHeader } from "@/components/brand-header";
 import { CheckIcon, ClockIcon, EditIcon, PlusIcon, QrIcon, RefreshIcon, WifiOffIcon } from "@/components/icons";
+import { LocationHeader } from "@/components/location-header";
 import { copy } from "@/lib/copy";
 import type { OrderStatus } from "@/lib/domain/orders";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { isLocationImageType, LOCATION_IMAGE_MAX_BYTES } from "@/lib/supabase/location-images";
 import type { StaffOrder, StaffSnapshot } from "@/lib/types";
 
 import { OrderDialog } from "./order-dialog";
@@ -17,6 +18,15 @@ function orderTime(value: string) {
   return new Intl.DateTimeFormat("bs-BA", { hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 }
 
+function readAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.addEventListener("load", () => resolve(String(reader.result)), { once: true });
+    reader.addEventListener("error", () => reject(reader.error), { once: true });
+    reader.readAsDataURL(file);
+  });
+}
+
 export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: StaffSnapshot; demo: boolean }) {
   const router = useRouter();
   const [snapshot, setSnapshot] = useState(initialSnapshot);
@@ -24,6 +34,7 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
   const [selectedOrder, setSelectedOrder] = useState<StaffOrder | null>(null);
   const [qrOrder, setQrOrder] = useState<StaffOrder | null>(null);
   const [pending, setPending] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [online, setOnline] = useState(() => demo || typeof navigator === "undefined" || navigator.onLine);
   const [connected, setConnected] = useState(demo);
   const [backendReachable, setBackendReachable] = useState(true);
@@ -154,9 +165,48 @@ export function DashboardClient({ initialSnapshot, demo }: { initialSnapshot: St
     router.refresh();
   }
 
+  async function uploadLocationImage(file: File) {
+    if (!isLocationImageType(file.type)) {
+      setError("Odaberite JPG, PNG ili WebP sliku.");
+      return;
+    }
+    if (file.size > LOCATION_IMAGE_MAX_BYTES) {
+      setError("Slika može imati najviše 2 MB.");
+      return;
+    }
+
+    setImageUploading(true);
+    setError("");
+    try {
+      if (demo) {
+        const imageUrl = await readAsDataUrl(file);
+        setSnapshot((current) => ({ ...current, locationImageUrl: imageUrl }));
+        return;
+      }
+
+      const formData = new FormData();
+      formData.set("image", file);
+      const response = await fetch("/api/staff/location-image", { method: "POST", body: formData });
+      const payload = (await response.json()) as { imageUrl?: string; error?: string };
+      if (!response.ok || !payload.imageUrl) throw new Error(payload.error ?? "Sliku trenutno nije moguće sačuvati.");
+      setSnapshot((current) => ({ ...current, locationImageUrl: payload.imageUrl ?? null }));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Sliku trenutno nije moguće sačuvati.");
+    } finally {
+      setImageUploading(false);
+    }
+  }
+
   return (
     <div className="min-h-dvh bg-base-200/60" onTouchStart={(event) => { if (window.scrollY === 0) touchStart.current = event.touches[0]?.clientY ?? null; }} onTouchEnd={(event) => { const end = event.changedTouches[0]?.clientY; if (touchStart.current !== null && end && end - touchStart.current > 80) void refresh(); touchStart.current = null; }}>
-      <BrandHeader locationName={snapshot.locationName} onLogout={() => void logout()} />
+      <LocationHeader
+        locationName={snapshot.locationName}
+        imageUrl={snapshot.locationImageUrl}
+        imageUploading={imageUploading}
+        imageUploadDisabled={!canWrite}
+        onImageChange={(file) => void uploadLocationImage(file)}
+        onLogout={() => void logout()}
+      />
       <main className="safe-bottom mx-auto w-full max-w-3xl px-5 py-7 sm:px-7 sm:py-9">
         {!online || !connected || !backendReachable ? <div role="alert" className="alert alert-warning mb-5"><WifiOffIcon className="h-5 w-5" /><span>{!online ? copy.offline : !backendReachable ? copy.backendUnavailable : copy.stale}</span><button type="button" className="btn btn-sm" disabled={!online} onClick={() => void refresh()}><RefreshIcon className="h-4 w-4" />Osvježi</button></div> : null}
         {error ? <div role="alert" className="alert alert-error mb-5"><span>{error}</span></div> : null}

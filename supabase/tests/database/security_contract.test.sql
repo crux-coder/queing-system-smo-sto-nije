@@ -1,12 +1,31 @@
 begin;
-select plan(12);
+select plan(17);
 
 select has_table('public', 'locations', 'locations exists');
 select has_table('public', 'orders', 'private orders exist');
 select has_table('public', 'public_queue', 'sanitized public queue exists');
+select has_column('public', 'locations', 'image_path', 'locations can reference a public image');
 select has_function('public', 'create_order', array['text', 'uuid'], 'atomic create RPC exists');
 select has_function('public', 'update_order', array['uuid', 'order_status', 'order_status', 'text'], 'conditional update RPC exists');
 select has_function('public', 'track_order', array['uuid'], 'token tracking RPC exists');
+select has_function('public', 'set_location_image', array['text'], 'owner-scoped location image RPC exists');
+
+select ok(
+  (select public and file_size_limit = 2097152
+    and allowed_mime_types @> array['image/jpeg', 'image/png', 'image/webp']::text[]
+   from storage.buckets where id = 'location-images'),
+  'location image bucket is public with safe upload restrictions'
+);
+
+select ok(
+  not has_function_privilege('anon', 'public.set_location_image(text)', 'execute'),
+  'anonymous users cannot change a location image'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.set_location_image(text)', 'execute'),
+  'authenticated staff can call the location image RPC'
+);
 
 select ok(not has_table_privilege('anon', 'public.orders', 'select'), 'anon cannot read private orders');
 select ok(not has_table_privilege('anon', 'public.orders', 'insert'), 'anon cannot insert orders');

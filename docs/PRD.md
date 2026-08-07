@@ -83,10 +83,12 @@ The application intentionally excludes menu management, payment processing, prin
 65. As a user, I want the interface written in Bosnian Latin script, so that operational and customer copy fits the pilot market.
 66. As a user, I want a modern, light, high-contrast interface with large touch targets, so that the application feels polished and remains easy to operate.
 67. As a user relying on assistive cues, I want every status communicated with text as well as color, so that status does not depend on color perception.
+68. As a location owner, I want to upload a public location image by pressing the dashboard avatar, so that customers recognize the restaurant or fast-food location.
+69. As a customer, I want the location name and image to replace the product branding in the page header, so that the restaurant identity is immediately clear.
 
 ## Implementation Decisions
 
-- The product and displayed brand name is **Samo Što Nije**.
+- The product name is **Samo Što Nije**, but operational and customer page headers prioritize the location identity and do not display the product brand.
 - The application is a responsive Next.js web application hosted on Railway. It is not a native application and does not promise offline-capable PWA behavior.
 - Supabase provides Postgres, email/password Auth, and Realtime. Current Supabase documentation and changelog must be checked before implementation because its APIs and recommended authorization patterns change over time.
 - daisyUI from [daisyui.com](https://daisyui.com) is the component library and primary styling system. Tailwind utilities may support responsive layout and small composition adjustments, but implementations should prefer daisyUI components and theme tokens over bespoke primitives and one-off visual systems.
@@ -94,7 +96,8 @@ The application intentionally excludes menu management, payment processing, prin
 - All product copy is Bosnian Latin script. Copy should be centralized so localization can be added later, but the MVP has no language switcher.
 - One authenticated account maps to exactly one location. Accounts and their location record are provisioned manually. There is no registration, invitation, password-reset, location-switching, role, or team-management flow.
 - The root route redirects authenticated staff to the dashboard and unauthenticated visitors to login. There is no marketing homepage. QR tracking is the only public product experience.
-- A location has one manually configured display name. There is no location settings or branding interface.
+- A location has one manually configured display name and one optional public image. The image is changed directly through the dashboard's squircle avatar; there is no separate settings screen.
+- Location images are limited to JPG, PNG, or WebP files up to 2 MB. They are served from a public Supabase Storage bucket, while owner-scoped Storage policies and an authenticated RPC restrict uploads, replacement, and deletion to the owning location.
 - The canonical order statuses are `ordered`, `ready`, `collected`, `cancelled`, and `expired`.
 - Valid staff transitions are `ordered -> ready`, `ordered -> cancelled`, and `ready -> collected`. A scheduled system transition changes any still-active order to `expired` 24 hours after creation.
 - Invalid or stale transitions must fail safely. Concurrent staff actions must be conditional on the expected current status so that two devices cannot apply contradictory transitions.
@@ -143,7 +146,7 @@ The application intentionally excludes menu management, payment processing, prin
 - Authorization tests prove that authenticated staff can read and mutate only the location mapped to their account.
 - Realtime tests prove that only public-safe fields can reach anonymous subscribers and that staff/customer views reconcile to the canonical state after a change.
 - Resilience tests cover immediate matched-delete handling, connected-state terminal reconciliation, a disconnected Realtime channel, visible degraded state, 10-second polling, successful reconnection, manual refresh, and correct last-synced semantics.
-- Interaction tests cover input trimming, empty and over-limit validation, double-submit prevention, QR reopening, explicit edit saving, direct mark-ready without a dialog, ready-to-collected behavior, and disabled writes while offline.
+- Interaction tests cover input trimming, empty and over-limit validation, double-submit prevention, location image upload, QR reopening, explicit edit saving, direct mark-ready without a dialog, ready-to-collected behavior, and disabled writes while offline.
 - Accessibility verification covers keyboard operation on desktop, touch-target sizing on mobile, status text independent of color, focus management in dialogs, and readable contrast in the light theme.
 - The repository currently contains no established product test suite or comparable feature tests. The implementation should add the smallest test harness that supports these three principal seams: pure domain behavior, database/RLS contracts, and the end-to-end browser journey.
 
@@ -157,7 +160,7 @@ The application intentionally excludes menu management, payment processing, prin
 - SMS, email, browser push, native push, and guaranteed audible alerts.
 - A marketing homepage, public location discovery, configurable public boards, or kiosk mode.
 - Staff history, search, reporting, analytics dashboards, service-time metrics, exports, and audit-log UI.
-- Logo uploads, custom themes, custom status colors, location-address management, or any branding/settings UI.
+- Custom themes, custom status colors, location-address management, or any broader branding/settings UI beyond the location image control.
 - Editing ready or terminal orders, cancelling ready orders, restoring terminal orders, or reusing order numbers.
 - Offline order creation, queued offline mutations, and conflict resolution after reconnecting.
 - Native iOS or Android applications and an offline-capable PWA.

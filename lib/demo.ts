@@ -5,6 +5,7 @@ const day = "2026-08-07";
 export const demoStaffSnapshot: StaffSnapshot = {
   locationId: "demo-location",
   locationName: "Ćevabdžinica Kod Muje",
+  locationImageUrl: null,
   orders: [
     {
       id: "demo-22",
@@ -48,6 +49,7 @@ export const demoStaffSnapshot: StaffSnapshot = {
 export const demoTrackingSnapshot: TrackingSnapshot = {
   locationId: "demo-location",
   locationName: "Ćevabdžinica Kod Muje",
+  locationImageUrl: null,
   trackedOrderId: "demo-24",
   publicNumber: "C-024",
   status: "ordered",

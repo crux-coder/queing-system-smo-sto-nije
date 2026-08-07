@@ -6,8 +6,8 @@ import ServingFoodIcon from "@hugeicons/core-free-icons/ServingFoodIcon";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { BrandHeader } from "@/components/brand-header";
 import { CheckIcon, RefreshIcon, WifiOffIcon } from "@/components/icons";
+import { LocationHeader } from "@/components/location-header";
 import { copy } from "@/lib/copy";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import type { TrackingSnapshot } from "@/lib/types";
@@ -93,13 +93,13 @@ export function TrackingClient({ token, initialSnapshot, demo }: { token: string
   const tracked = queue.find((order) => order.orderId === snapshot.trackedOrderId);
   const ahead = tracked ? queue.filter((order) => order.status === "ordered" && (order.createdAt < tracked.createdAt || (order.createdAt === tracked.createdAt && order.orderId < tracked.orderId))).length : 0;
 
-  if (!snapshot.queue) return <div className="min-h-dvh bg-base-200/60"><BrandHeader locationName={snapshot.locationName} /><TerminalState snapshot={snapshot} /></div>;
+  if (!snapshot.queue) return <div className="min-h-dvh bg-base-200/60"><LocationHeader locationName={snapshot.locationName} imageUrl={snapshot.locationImageUrl} /><TerminalState snapshot={snapshot} /></div>;
 
   const isReady = snapshot.status === "ready";
   const reachedStepClass = isReady ? "step-success" : "step-primary";
   return (
     <div className="min-h-dvh bg-base-200/60" onTouchStart={(event) => { if (window.scrollY === 0) touchStart.current = event.touches[0]?.clientY ?? null; }} onTouchEnd={(event) => { const end = event.changedTouches[0]?.clientY; if (touchStart.current !== null && end && end - touchStart.current > 80) void refresh(); touchStart.current = null; }}>
-      <BrandHeader locationName={snapshot.locationName} />
+      <LocationHeader locationName={snapshot.locationName} imageUrl={snapshot.locationImageUrl} />
       <main className="safe-bottom mx-auto w-full max-w-2xl px-5 py-7 sm:px-7 sm:py-9">
         {!online || !connected ? <div role="status" className="alert alert-warning mb-6"><WifiOffIcon className="h-5 w-5" /><span>{!online ? "Nema internetske veze. Prikazujemo posljednje podatke." : copy.stale}</span></div> : null}
 

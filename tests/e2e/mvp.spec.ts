@@ -3,6 +3,16 @@ import { expect, test } from "@playwright/test";
 test("staff can create, edit, cancel, advance, collect, and reopen a QR code", async ({ page }) => {
   await page.goto("/dashboard");
 
+  await expect(page.locator("header").getByText("Ćevabdžinica Kod Muje", { exact: true })).toBeVisible();
+  await expect(page.locator("header").getByText("Samo Što Nije", { exact: true })).toHaveCount(0);
+  await expect(page.locator("header .mask-squircle")).toBeVisible();
+  await page.getByLabel("Promijeni sliku lokacije").setInputFiles({
+    name: "lokacija.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=", "base64"),
+  });
+  await expect(page.locator("header .mask-squircle img")).toBeVisible();
+
   const input = page.getByPlaceholder("Upišite narudžbu…");
   await input.fill("  Somun i jogurt  ");
   await expect(page.getByText(/18 \/ 500/)).toBeVisible();
@@ -48,6 +58,10 @@ test("staff can create, edit, cancel, advance, collect, and reopen a QR code", a
 
 test("customer sees only their Aura progress and the count ahead", async ({ page }) => {
   await page.goto("/track/demo");
+  await expect(page.locator("header").getByText("Ćevabdžinica Kod Muje", { exact: true })).toBeVisible();
+  await expect(page.locator("header").getByText("Samo Što Nije", { exact: true })).toHaveCount(0);
+  await expect(page.locator("header .mask-squircle")).toBeVisible();
+  await expect(page.getByLabel("Promijeni sliku lokacije")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Pripremamo vašu narudžbu" })).toBeVisible();
   await expect(page.locator(".aura.text-primary")).toBeVisible();
   await expect(page.locator(".aura-glow")).toHaveCount(0);
