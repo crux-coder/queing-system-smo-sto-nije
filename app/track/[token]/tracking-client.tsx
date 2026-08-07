@@ -75,10 +75,10 @@ export function TrackingClient({ token, initialSnapshot, demo }: { token: string
   }, [demo, isActive, refresh, snapshot.locationId]);
 
   useEffect(() => {
-    if (connected || !online || !isActive) return;
+    if (demo || !online || !isActive) return;
     const interval = window.setInterval(() => void refresh(), 10_000);
     return () => window.clearInterval(interval);
-  }, [connected, isActive, online, refresh]);
+  }, [demo, isActive, online, refresh]);
 
   const queue = snapshot.queue ?? [];
   const tracked = queue.find((order) => order.orderId === snapshot.trackedOrderId);

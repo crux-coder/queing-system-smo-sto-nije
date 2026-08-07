@@ -68,7 +68,7 @@ The application intentionally excludes menu management, payment processing, prin
 50. As a customer, I want to see when my device last synchronized successfully, so that I can judge whether the queue is fresh.
 51. As a customer, I want the last-synced timestamp updated after initial load, Realtime events, polling, and manual refresh, so that it represents device freshness rather than the last business action.
 52. As a customer, I want a visible disconnected or stale state, so that old information is never presented as current.
-53. As a customer, I want automatic polling every 10 seconds when Realtime is disconnected, so that tracking continues in a degraded mode.
+53. As a customer, I want active tracking to reconcile every 10 seconds even when Realtime is connected, so that terminal changes that remove the public queue row cannot be missed.
 54. As a customer, I want to pull to refresh, so that I can request a current snapshot immediately.
 55. As a customer, I want a collected tracking link to show that the order was collected, so that an old link has a clear terminal result.
 56. As a customer, I want a cancelled tracking link to tell me the order was cancelled and to speak to staff, so that disappearance from the queue is explained.
@@ -120,7 +120,7 @@ The application intentionally excludes menu management, payment processing, prin
 - Anonymous access is read-only. Row Level Security and database grants deny all anonymous inserts, updates, and deletes. Authenticated staff policies include location ownership checks rather than relying on the authenticated role alone.
 - Public queue activity is intentionally treated as observable in the MVP. The accepted risk is that a third party may infer location volume, rush periods, and approximate preparation speed.
 - Both staff and active customer pages use Supabase Realtime. Realtime events trigger a canonical refetch or otherwise reconcile against a server-authoritative snapshot rather than blindly trusting partial local state.
-- When Realtime disconnects, clients enter a visible degraded state, poll every 10 seconds, allow manual pull-to-refresh, and attempt to restore the subscription.
+- Active customer pages reconcile every 10 seconds because filtered Realtime subscriptions cannot deliver the public-queue deletion that represents a terminal order. When Realtime disconnects, clients additionally enter a visible degraded state, allow manual pull-to-refresh, and attempt to restore the subscription.
 - `Last synced` means the latest successful device synchronization. It updates after the initial snapshot, a successfully reconciled Realtime event, a successful fallback poll, or a successful manual refresh.
 - The customer page has one large personal-order card with Aura progress, a prominent count of ordered items ahead, and connection/freshness information. It does not render ready or ordered lists.
 - The queue-ahead estimate counts currently `ordered` items at the same location whose creation ordering precedes the tracked order. The UI presents this as an estimate because preparation may complete out of sequence.
@@ -142,7 +142,7 @@ The application intentionally excludes menu management, payment processing, prin
 - Authorization tests prove that an unauthenticated user can read only the sanitized queue representation, cannot read descriptions or tracking credentials, and cannot perform any write.
 - Authorization tests prove that authenticated staff can read and mutate only the location mapped to their account.
 - Realtime tests prove that only public-safe fields can reach anonymous subscribers and that staff/customer views reconcile to the canonical state after a change.
-- Resilience tests cover a disconnected Realtime channel, visible degraded state, 10-second polling fallback, successful reconnection, manual refresh, and correct last-synced semantics.
+- Resilience tests cover connected-state terminal reconciliation, a disconnected Realtime channel, visible degraded state, 10-second polling, successful reconnection, manual refresh, and correct last-synced semantics.
 - Interaction tests cover input trimming, empty and over-limit validation, double-submit prevention, QR reopening, explicit edit saving, direct mark-ready without a dialog, ready-to-collected behavior, and disabled writes while offline.
 - Accessibility verification covers keyboard operation on desktop, touch-target sizing on mobile, status text independent of color, focus management in dialogs, and readable contrast in the light theme.
 - The repository currently contains no established product test suite or comparable feature tests. The implementation should add the smallest test harness that supports these three principal seams: pure domain behavior, database/RLS contracts, and the end-to-end browser journey.
