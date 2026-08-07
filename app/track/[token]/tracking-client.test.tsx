@@ -63,13 +63,21 @@ const readySnapshot: TrackingSnapshot = {
   ],
 };
 
-describe("TrackingClient terminal reconciliation", () => {
+describe("TrackingClient", () => {
   afterEach(() => {
     cleanup();
     vi.useRealTimers();
     vi.unstubAllGlobals();
     vi.clearAllMocks();
     supabaseMock.subscriptions.length = 0;
+  });
+
+  it("uses the dual Aura for a ready order", () => {
+    render(<TrackingClient token="tracking-token" initialSnapshot={readySnapshot} demo />);
+
+    const readyCard = screen.getByRole("region", { name: "Vaša narudžba je spremna!" });
+    expect(readyCard.parentElement).toHaveClass("aura", "aura-dual", "text-success");
+    expect(readyCard.parentElement).not.toHaveClass("aura-glow");
   });
 
   it("refreshes immediately when Realtime deletes the tracked public queue row", async () => {

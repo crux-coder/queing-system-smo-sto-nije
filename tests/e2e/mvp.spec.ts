@@ -64,6 +64,7 @@ test("customer sees only their Aura progress and the count ahead", async ({ page
   await expect(page.getByLabel("Promijeni sliku lokacije")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Pripremamo vašu narudžbu" })).toBeVisible();
   await expect(page.locator(".aura.text-primary")).toBeVisible();
+  await expect(page.locator(".aura-dual")).toHaveCount(0);
   await expect(page.locator(".aura-glow")).toHaveCount(0);
   await expect(page.getByText("Narudžbi ispred vas")).toBeVisible();
   await expect(page.getByText("2", { exact: true })).toBeVisible();
